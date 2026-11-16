@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEXL. Focus — Real-Time Study Network</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- GunDB Peer-to-Peer Real-Time Sync Engine (Zero Backend Required) -->
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+</head>
+<body class="theme-obsidian">
+    <!-- Animated Starfield Canvas for VEXL+ Pro Members -->
+    <canvas id="pro-starfield"></canvas>
+
+    <!-- Live In-App OTP Notification Toast -->
+    <div class="otp-toast" id="otp-toast">
+        <div class="otp-toast-icon">🔐</div>
+        <div class="otp-toast-content">
+            <strong>VEXL. Verification SMS</strong>
+            <p id="otp-toast-msg">Your 4-digit OTP code is <span id="otp-toast-code">0000</span></p>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div class="onboarding-overlay" id="onboarding-modal">
+        <div class="onboarding-card">
+            <div class="brand-header">
+                <h2>VEXL<span>.</span></h2>
+                <p>Initialize Your Real Student Identity</p>
+            </div>
+            
+            <!-- Step 1: Name -->
+            <div class="step-container" id="step-1">
+                <label>1. What should we call you?</label>
+                <input type="text" id="input-name" placeholder="e.g. Aarav Sharma" autocomplete="off">
+                <button class="btn primary-btn" onclick="nextStep(2)">Next Step →</button>
+            </div>
+
+            <!-- Step 2: Country Code + Phone + OTP -->
+            <div class="step-container hidden" id="step-2">
+                <label>2. Mobile Number Verification</label>
+                <div class="phone-input-row">
+                    <select id="input-country-code">
+                        <option value="+91">🇮🇳 +91 (IN)</option>
+                        <option value="+1">🇺🇸 +1 (US)</option>
+                        <option value="+44">🇬🇧 +44 (UK)</option>
+                        <option value="+971">🇦🇪 +971 (UAE)</option>
+                        <option value="+61">🇦🇺 +61 (AU)</option>
+                        <option value="+65">🇸🇬 +65 (SG)</option>
+                        <option value="+49">🇩🇪 +49 (DE)</option>
+                        <option value="+81">🇯🇵 +81 (JP)</option>
+                    </select>
+                    <input type="tel" id="input-phone" placeholder="9876543210" maxlength="15" autocomplete="off">
+                </div>
+                <button type="button" class="btn secondary-btn" id="send-otp-btn" onclick="triggerOTP()">Send OTP Code 📩</button>
+                
+                <div class="otp-verify-box hidden" id="otp-verify-box">
+                    <label>Enter 4-Digit OTP</label>
+                    <input type="text" id="input-otp" placeholder="• • • •" maxlength="4" style="text-align:center; font-family:var(--font-mono); font-size:18px; letter-spacing:8px;">
+                    <span class="otp-error" id="otp-error-msg"></span>
+                </div>
+
+                <div class="step-buttons">
+                    <button class="btn secondary-btn" onclick="nextStep(1)">← Back</button>
+                    <button class="btn primary-btn" onclick="verifyAndProceed()">Verify & Next →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Gmail -->
+            <div class="step-container hidden" id="step-3">
+                <label>3. Enter your Gmail account</label>
+                <input type="email" id="input-email" placeholder="name@gmail.com" autocomplete="off">
+                <div class="step-buttons">
+                    <button class="btn secondary-btn" onclick="nextStep(2)">← Back</button>
+                    <button class="btn primary-btn" onclick="nextStep(4)">Next Step →</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Academic Stream -->
+            <div class="step-container hidden" id="step-4">
+                <label>4. Select your Academic Stream / Goal</label>
+                <select id="input-stream">
+                    <option value="Class 10 Boards">Class 10 Boards (Next Toppers / PW)</option>
+                    <option value="Class 12 Boards">Class 12 Boards</option>
+                    <option value="JEE">Engineering (JEE / Math)</option>
+                    <option value="NEET">Medical (NEET / Biology)</option>
+                    <option value="Commerce">Commerce & Economics</option>
+                    <option value="Coding">Coding & Tech</option>
+                </select>
+                <div class="step-buttons">
+                    <button class="btn secondary-btn" onclick="nextStep(3)">← Back</button>
+                    <button class="btn primary-btn" onclick="nextStep(5)">Next Step →</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Date of Birth -->
+            <div class="step-container hidden" id="step-5">
+                <label>5. What is your Date of Birth?</label>
+                <input type="date" id="input-dob">
+                <div class="step-buttons">
+                    <button class="btn secondary-btn" onclick="nextStep(4)">← Back</button>
+                    <button class="btn primary-btn" onclick="completeOnboarding()">Launch VEXL Hub ⚡</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>VEXL<span>.</span></h1>
+                <p class="tagline">Live Study Network</p>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="focus">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>Focus Studio</span>
+                </button>
+                <button class="nav-item" data-tab="chat">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>Stream Lounge</span>
+                </button>
+                <button class="nav-item" data-tab="classes">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                    <span>YT Study Browser</span>
+                </button>
+                <button class="nav-item" data-tab="analytics">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <span>Live Stats</span>
+                </button>
+                <button class="nav-item" data-tab="profile">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span>Student Profile</span>
+                </button>
+                
+                <!-- Custom Glowing VIP/PRO Sparkle Pill Button -->
+                <button class="vexl-pro-trigger" id="open-pro-modal">
+                    <span class="pro-sparkle-pill">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L14.8 9.2L23 12L14.8 14.8L12 23L9.2 14.8L1 12L9.2 9.2L12 1Z"/></svg>
+                        <span>PRO</span>
+                    </span>
+                    <span class="pro-trigger-label">VEXL+ Pass</span>
+                </button>
+            </nav>
+
+            <!-- Real-Time Online Peers (Zero Bots) -->
+            <div class="peer-sidebar-section">
+                <div class="section-header">
+                    <h3>Online Peers (<span id="online-peer-count">0</span>)</h3>
+                    <span class="live-dot"></span>
+                </div>
+                <div class="peer-list" id="peer-list">
+                    <div class="empty-peers-msg">Waiting for live students to join...</div>
+                </div>
+            </div>
+
+            <div class="user-profile-widget" onclick="switchTab('profile')" style="cursor:pointer;" title="Open Student Profile">
+                <div class="user-avatar" id="user-avatar-initials">VX</div>
+                <div class="user-meta">
+                    <div class="user-name-row">
+                        <span class="user-name" id="display-username">Initiate</span>
+                        <span class="pro-sparkle-pill mini hidden" id="sidebar-pro-badge">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L14.8 9.2L23 12L14.8 14.8L12 23L9.2 14.8L1 12L9.2 9.2L12 1Z"/></svg>
+                            <span>PRO</span>
+                        </span>
+                    </div>
+                    <div class="user-rank" id="display-rank">Lvl 1 • Initiate</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="stream-indicator-pill" id="topbar-stream-pill">Stream: General</div>
+                <div class="streak-pill">
+                    <span>🔥</span>
+                    <span id="streak-count">1</span> Day Streak
+                </div>
+                <div class="xp-pill">
+                    <span id="user-xp">0</span> XP
+                </div>
+                <button class="theme-toggle" id="quick-chroma-btn" onclick="switchTab('profile')" title="Open Chroma Theme Dial">🎨</button>
+            </header>
+
+            <!-- 1. Focus Tab -->
+            <div class="tab-content active" id="tab-focus">
+                <div class="focus-workspace">
+                    <div class="timer-section">
+                        <div class="mode-selector">
+                            <button class="mode-btn active" data-mode="deep">Deep Work (50m)</button>
+                            <button class="mode-btn" data-mode="pomodoro">Pomodoro (25m)</button>
+                            <button class="mode-btn" data-mode="sprint">Sprint (15m)</button>
+                            <button class="mode-btn" data-mode="flow">Flow (Stopwatch)</button>
+                        </div>
+
+                        <div class="timer-display-box">
+                            <svg class="progress-ring" width="280" height="280">
+                                <circle class="ring-bg" cx="140" cy="140" r="125" />
+                                <circle class="ring-progress" id="ring-progress" cx="140" cy="140" r="125" />
+                            </svg>
+                            <div class="timer-inner">
+                                <div class="time-text" id="time-display">50:00</div>
+                                <div class="timer-status" id="timer-status-text">Ready to Lock In</div>
+                            </div>
+                        </div>
+
+                        <div class="timer-actions">
+                            <button class="btn primary-btn" id="start-pause-btn">Start Session</button>
+                            <button class="btn secondary-btn" id="reset-btn">Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="tools-column">
+                        <div class="card task-card">
+                            <div class="card-title">
+                                <h3>Lock-In Goals</h3>
+                                <span id="task-counter">0/0</span>
+                            </div>
+                            <form id="task-form" class="task-form">
+                                <input type="text" id="task-input" placeholder="Add a focus objective..." autocomplete="off">
+                                <button type="submit">+</button>
+                            </form>
+                            <ul class="task-list" id="task-list"></ul>
+                        </div>
+
+                        <div class="card audio-card">
+                            <div class="card-title">
+                                <h3>Ambient Soundscape</h3>
+                                <button class="audio-master-toggle" id="audio-master-btn">Mute All</button>
+                            </div>
+                            <div class="sliders-grid">
+                                <div class="slider-group">
+                                    <label>🌧️ Soft Rain <span id="val-rain">0%</span></label>
+                                    <input type="range" id="range-rain" min="0" max="100" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <label>📻 Brown Noise <span id="val-noise">0%</span></label>
+                                    <input type="range" id="range-noise" min="0" max="100" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <label>💿 Vinyl Crackle <span id="val-vinyl">0%</span></label>
+                                    <input type="range" id="range-vinyl" min="0" max="100" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <label>☕ Library Hum <span id="val-library">0%</span></label>
+                                    <input type="range" id="range-library" min="0" max="100" value="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Real-Time Same-Stream Student Chat Lounge -->
+            <div class="tab-content" id="tab-chat">
+                <div class="chat-container card">
+                    <div class="chat-header">
+                        <div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <h2 id="chat-room-title">Stream Study Lounge</h2>
+                                <span class="live-badge">P2P LIVE</span>
+                            </div>
+                            <p class="subtitle">Real students in your exact stream (<strong id="chat-stream-name">General</strong>) • Zero bots</p>
+                        </div>
+                    </div>
+
+                    <div class="chat-messages-box" id="chat-messages-box">
+                        <div class="chat-system-notice">Connected to decentralized P2P room. Say hi to fellow students in your stream!</div>
+                    </div>
+
+                    <form id="chat-form" class="chat-input-form">
+                        <input type="text" id="chat-input" placeholder="Message real students in your stream..." maxlength="300" autocomplete="off">
+                        <button type="submit" class="btn primary-btn" style="flex:0 0 auto; padding:12px 24px;">Send ➤</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 3. YouTube Study Browser Tab -->
+            <div class="tab-content" id="tab-classes">
+                <div class="classes-container">
+                    <div class="classes-header">
+                        <div>
+                            <h2>VEXL. YouTube Study Browser</h2>
+                            <p class="subtitle">Distraction-free lecture player • Stream: <strong id="user-stream-badge">General</strong></p>
+                        </div>
+                    </div>
+
+                    <form id="yt-search-form" class="yt-search-bar">
+                        <input type="text" id="yt-search-input" placeholder="Paste any YouTube lecture link OR type topic to search..." autocomplete="off">
+                        <button type="submit" class="btn primary-btn">Load / Search ▶</button>
+                    </form>
+
+                    <div class="quick-chips" id="quick-chips"></div>
+                    
+                    <div class="video-player-card card">
+                        <div class="video-container">
+                            <iframe 
+                                id="active-yt-player" 
+                                src="https://www.youtube-nocookie.com/embed/PkZNo7MFNFg?rel=0" 
+                                title="VEXL Study Player" 
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                        <div class="video-info" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <h3 id="current-video-title">Ready to Study — Select a Preset or Paste Any YouTube Link</h3>
+                                <span class="channel-tag" id="current-channel-tag">Copy any PW or Next Toppers video link from YouTube and paste it above!</span>
+                            </div>
+                            <a id="yt-external-search" href="https://www.youtube.com/results?search_query=Physics+Wallah" target="_blank" class="btn secondary-btn" style="flex:0 0 auto; text-decoration:none; font-size:12px;">
+                                Browse on YouTube ↗
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Live Analytics Tab -->
+            <div class="tab-content" id="tab-analytics">
+                <div class="analytics-container">
+                    <div class="card">
+                        <h2>Live Focus Telemetry</h2>
+                        <p class="subtitle">Real-time focus minutes recorded across the last 7 days</p>
+                        <div class="chart-wrapper">
+                            <canvas id="focus-canvas" width="600" height="260"></canvas>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="card stat-card">
+                            <span class="stat-num" id="stat-total-time">0m 0s</span>
+                            <span class="stat-label">Live Total Focus Time</span>
+                        </div>
+                        <div class="card stat-card">
+                            <span class="stat-num" id="stat-completed-sessions">0</span>
+                            <span class="stat-label">Completed Sessions</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Student Profile & Chroma Theme Mixer Tab -->
+            <div class="tab-content" id="tab-profile">
+                <div class="profile-container">
+                    <div class="card profile-hero-card">
+                        <div class="profile-hero-left">
+                            <div class="profile-big-avatar" id="profile-big-avatar">VX</div>
+                            <div>
+                                <div class="profile-name-row">
+                                    <h2 id="profile-full-name">Student Name</h2>
+                                    <span class="verified-badge">✔ OTP Verified</span>
+                                    <span class="pro-sparkle-pill hidden" id="profile-pro-badge">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L14.8 9.2L23 12L14.8 14.8L12 23L9.2 14.8L1 12L9.2 9.2L12 1Z"/></svg>
+                                        <span>PRO</span>
+                                    </span>
+                                </div>
+                                <p class="subtitle" id="profile-rank-text">Lvl 1 • Initiate • VEXL Focus Member</p>
+                            </div>
+                        </div>
+                        <button class="btn secondary-btn" style="flex:0 0 auto;" onclick="resetAccount()">Reset / Switch Account</button>
+                    </div>
+
+                    <!-- Chroma Dial & Profile Theme Studio -->
+                    <div class="card chroma-card">
+                        <div class="card-title">
+                            <h3>Chroma Theme Studio & Custom Dial</h3>
+                            <span id="chroma-hex-readout" style="font-family:var(--font-mono); color:var(--accent);">#10B981</span>
+                        </div>
+                        <p class="subtitle" style="margin-bottom:16px;">Pick a signature preset or spin the Chroma Dial to mix your own custom UI color.</p>
+
+                        <div class="preset-swatches">
+                            <button type="button" class="swatch-btn" style="--swatch:#10B981;" onclick="applyPresetTheme(160, 84, 39, 'Emerald Obsidian')">Emerald Obsidian</button>
+                            <button type="button" class="swatch-btn" style="--swatch:#A855F7;" onclick="applyPresetTheme(271, 91, 65, 'Royal Amethyst')">Royal Amethyst</button>
+                            <button type="button" class="swatch-btn" style="--swatch:#06B6D4;" onclick="applyPresetTheme(189, 94, 43, 'Cyber Cyan')">Cyber Cyan</button>
+                            <button type="button" class="swatch-btn" style="--swatch:#F43F5E;" onclick="applyPresetTheme(350, 89, 60, 'Crimson Tokyo')">Crimson Tokyo</button>
+                            <button type="button" class="swatch-btn" style="--swatch:#F59E0B;" onclick="applyPresetTheme(38, 92, 50, 'Solar Amber')">Solar Amber</button>
+                            <button type="button" class="swatch-btn" style="--swatch:#EC4899;" onclick="applyPresetTheme(330, 81, 60, 'Neon Rose')">Neon Rose</button>
+                        </div>
+
+                        <div class="chroma-dial-controls">
+                            <div class="chroma-wheel-wrapper">
+                                <div class="chroma-wheel" id="chroma-wheel">
+                                    <div class="chroma-knob" id="chroma-knob"></div>
+                                </div>
+                            </div>
+                            <div class="chroma-sliders">
+                                <div class="slider-group">
+                                    <label>Hue Angle <span id="hue-val">160°</span></label>
+                                    <input type="range" id="chroma-hue-slider" class="rainbow-slider" min="0" max="360" value="160">
+                                </div>
+                                <div class="slider-group">
+                                    <label>Vibrancy (Saturation) <span id="sat-val">84%</span></label>
+                                    <input type="range" id="chroma-sat-slider" min="30" max="100" value="84">
+                                </div>
+                                <div class="slider-group">
+                                    <label>Glow Brightness <span id="light-val">45%</span></label>
+                                    <input type="range" id="chroma-light-slider" min="35" max="68" value="45">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="profile-edit-form" class="card profile-details-card">
+                        <div class="card-title">
+                            <h3>Student Identity & Academic Details</h3>
+                            <span style="color:var(--accent);">Synced Live</span>
+                        </div>
+
+                        <div class="profile-grid">
+                            <div class="form-field">
+                                <label>Full Name</label>
+                                <input type="text" id="prof-name" required>
+                            </div>
+                            <div class="form-field">
+                                <label>Verified Mobile Number</label>
+                                <div class="phone-input-row">
+                                    <select id="prof-country-code">
+                                        <option value="+91">🇮🇳 +91</option>
+                                        <option value="+1">🇺🇸 +1</option>
+                                        <option value="+44">🇬🇧 +44</option>
+                                        <option value="+971">🇦🇪 +971</option>
+                                        <option value="+61">🇦🇺 +61</option>
+                                        <option value="+65">🇸🇬 +65</option>
+                                        <option value="+49">🇩🇪 +49</option>
+                                        <option value="+81">🇯🇵 +81</option>
+                                    </select>
+                                    <input type="tel" id="prof-phone" required>
+                                </div>
+                            </div>
+                            <div class="form-field">
+                                <label>Gmail Address</label>
+                                <input type="email" id="prof-email" required>
+                            </div>
+                            <div class="form-field">
+                                <label>Academic Stream / Target</label>
+                                <select id="prof-stream">
+                                    <option value="Class 10 Boards">Class 10 Boards (Next Toppers / PW)</option>
+                                    <option value="Class 12 Boards">Class 12 Boards</option>
+                                    <option value="JEE">Engineering (JEE / Math)</option>
+                                    <option value="NEET">Medical (NEET / Biology)</option>
+                                    <option value="Commerce">Commerce & Economics</option>
+                                    <option value="Coding">Coding & Tech</option>
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label>Date of Birth</label>
+                                <input type="date" id="prof-dob">
+                            </div>
+                            <div class="form-field">
+                                <label>Student ID</label>
+                                <input type="text" id="prof-student-id" disabled style="opacity:0.6; font-family:var(--font-mono);">
+                            </div>
+                        </div>
+
+                        <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+                            <button type="submit" class="btn primary-btn" style="flex:0 0 auto; padding:12px 24px;">Save Profile Changes 💾</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- VEXL+ Pro Modal -->
+    <div class="modal-backdrop" id="pro-modal">
+        <div class="modal-card pro-modal-glow">
+            <button class="modal-close" id="close-pro-modal">×</button>
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <h2>VEXL<span>+</span> Pass</h2>
+                    <span class="pro-sparkle-pill">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L14.8 9.2L23 12L14.8 14.8L12 23L9.2 14.8L1 12L9.2 9.2L12 1Z"/></svg>
+                        <span>PRO</span>
+                    </span>
+                </div>
+                <p>Elevate your study room with cosmic animations and verified elite status.</p>
+            </div>
+            <div class="pro-features-list">
+                <div class="pro-item">🌌 Animated Deep-Space Starfield & Shooting Comets Background</div>
+                <div class="pro-item">✦ Glowing 4-Point Sparkle PRO Badge in Live Peers & Stream Chat</div>
+                <div class="pro-item">🎨 Full Chroma Dial RGB Theme Mixing & Unlimited Focus Stats</div>
+            </div>
+            <button class="btn primary-btn pro-action-btn" id="upgrade-btn">Activate VEXL+ Pro Theme ✨</button>
+        </div>
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

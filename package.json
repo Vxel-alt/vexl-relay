@@ -1,0 +1,13 @@
+{
+  "name": "vexl-relay",
+  "version": "1.0.0",
+  "description": "VEXL P2P Global Relay Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "gun": "^0.2020.124"
+  }
+}
